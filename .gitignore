@@ -52,3 +52,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+/src/RobotLogic/publish_temp
+/src/Client/public/_framework
+/src/RobotLogic/build.log
