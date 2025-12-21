@@ -1,0 +1,8 @@
+ForwardKinematics(JointsPosition jointAnglesDeg, DhParameters parameters) -> CartesianPosition
+ForwardKinematics(Double[] jointAnglesRad, DhParameters dhParameters) -> CartesianPosition
+InverseKinematics(CartesianPosition position, DhParameters parameters) -> JointsPosition[]
+Mul(Double[,] A, Double[,] B) -> Double[,]
+GetType() -> Type
+ToString() -> String
+Equals(Object obj) -> Boolean
+GetHashCode() -> Int32

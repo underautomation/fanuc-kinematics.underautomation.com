@@ -1,0 +1,20 @@
+DhParameters()
+DhParameters(Double, Double, Double, Double, Double, Double)
+DhParameters(IDhParameters)
+get_A1
+get_A2
+get_A3
+get_D4
+get_D5
+get_D6
+GetType
+ToString
+Equals
+GetHashCode
+.ctor
+A1
+A2
+A3
+D4
+D5
+D6

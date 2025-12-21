@@ -1,0 +1,1 @@
+UnderAutomation.Fanuc.Common.CartesianPosition

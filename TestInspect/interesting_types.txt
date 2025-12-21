@@ -1,0 +1,17 @@
+UnderAutomation.Fanuc.Common.JointsPosition
+UnderAutomation.Fanuc.FanucRobot
+UnderAutomation.Fanuc.Ftp.Variables.JointPositionVariable
+UnderAutomation.Fanuc.Kinematics.ArmKinematicModels
+UnderAutomation.Fanuc.Kinematics.Crx.CrxKinematicsUtils
+UnderAutomation.Fanuc.Kinematics.Crx10iaLDhmParameters
+UnderAutomation.Fanuc.Kinematics.DhParameters
+UnderAutomation.Fanuc.Kinematics.IDhParameters
+UnderAutomation.Fanuc.Kinematics.Internal.ArmModelAttribute
+UnderAutomation.Fanuc.Kinematics.KinematicsCategory
+UnderAutomation.Fanuc.Kinematics.KinematicsUtils
+UnderAutomation.Fanuc.Kinematics.Opw.OpwKinematicsUtils
+UnderAutomation.Fanuc.Rmi.Data.JointAngles
+UnderAutomation.Fanuc.Rmi.Data.JointAnglesSample
+UnderAutomation.Fanuc.Snpx.Internal.RobotAlarm
+UnderAutomation.Fanuc.Snpx.Internal.RobotTaskState
+UnderAutomation.Fanuc.Snpx.Internal.RobotTaskStatus

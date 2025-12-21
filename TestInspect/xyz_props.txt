@@ -1,0 +1,3 @@
+Double X { get;set; }
+Double Y { get;set; }
+Double Z { get;set; }

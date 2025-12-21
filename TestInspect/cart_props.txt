@@ -1,0 +1,7 @@
+Double W { get;set; }
+Double P { get;set; }
+Double R { get;set; }
+Configuration Configuration { get;set; }
+Double X { get;set; }
+Double Y { get;set; }
+Double Z { get;set; }
