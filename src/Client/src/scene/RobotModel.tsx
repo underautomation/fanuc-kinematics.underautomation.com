@@ -1,7 +1,4 @@
-import { useRef } from 'react';
-import { Group, Mesh } from 'three';
-import { TransformControls } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+
 
 interface RobotModelProps {
     joints: number[];
@@ -16,6 +13,7 @@ const Axis = () => (
 );
 
 export default function RobotModel({ joints, onTargetChange }: RobotModelProps) {
+    void onTargetChange;
     // Fanuc J1-J6
     // Note: Rotations are simplified approximations of a standard 6-axis structure
     // J1: Z-axis
@@ -37,7 +35,7 @@ export default function RobotModel({ joints, onTargetChange }: RobotModelProps) 
     const d1 = 400; // Base height
     const a2 = 500; // Arm 1
     const a3 = 500; // Arm 2
-    const d4 = 100; // Forearm
+
 
     return (
         <group>

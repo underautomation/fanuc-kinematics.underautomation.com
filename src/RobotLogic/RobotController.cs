@@ -11,7 +11,7 @@ public class RobotController
     private static DhParameters? _dhParameters;
 
     [JSInvokable]
-    public static double[] CalculateInverseKinematics(double x, double y, double z, double w, double p, double r)
+    public static double[][] CalculateInverseKinematics(double x, double y, double z, double w, double p, double r)
     {
         try
         {
@@ -36,11 +36,14 @@ public class RobotController
 
             if (solutions != null && solutions.Length > 0)
             {
-                // Select the optimal solution
-                // Ideally, we choosing the one closest to current configuration
-                // For now, pick the first one
-                var sol = solutions[0];
-                return new double[] { sol.J1, sol.J2, sol.J3, sol.J4, sol.J5, sol.J6 };
+                var result = new double[solutions.Length][];
+                for (int i = 0; i < solutions.Length; i++)
+                {
+                    var sol = solutions[i];
+                    result[i] = new double[] { sol.J1, sol.J2, sol.J3, sol.J4, sol.J5, sol.J6 };
+                }
+
+                return result;
             }
         }
         catch (Exception ex)
@@ -48,12 +51,12 @@ public class RobotController
             Console.WriteLine($"Error in IK: {ex.Message}");
         }
 
-        // Return zeros if no solution or error
-        return new double[] { 0, 0, 0, 0, 0, 0 };
+        // Return empty array if no solution or error
+        return Array.Empty<double[]>();
     }
 
     [JSInvokable]
-    public static double[] CalculateForwardKinematics(double j1, double j2, double j3, double j4, double j5, double j6)
+    public static FkResult? CalculateForwardKinematics(double j1, double j2, double j3, double j4, double j5, double j6)
     {
         try
         {
@@ -67,7 +70,26 @@ public class RobotController
 
             if (cartesian != null)
             {
-                return new double[] { cartesian.X, cartesian.Y, cartesian.Z, cartesian.W, cartesian.P, cartesian.R };
+                return new FkResult
+                {
+                    X = cartesian.X,
+                    Y = cartesian.Y,
+                    Z = cartesian.Z,
+                    W = cartesian.W,
+                    P = cartesian.P,
+                    R = cartesian.R,
+                    Configuration = new Configuration
+                    {
+                        WristFlip = (WristFlip)cartesian.Configuration.WristFlip,
+                        ArmUpDown = (ArmUpDown)cartesian.Configuration.ArmUpDown,
+                        ArmLeftRight = (ArmLeftRight)cartesian.Configuration.ArmLeftRight,
+                        ArmFrontBack = (ArmFrontBack)cartesian.Configuration.ArmFrontBack,
+                        TurnAxis4 = cartesian.Configuration.TurnAxis4,
+                        TurnAxis5 = cartesian.Configuration.TurnAxis5,
+                        TurnAxis6 = cartesian.Configuration.TurnAxis6,
+                        ConfigString = cartesian.Configuration.ToString()
+                    }
+                };
             }
         }
         catch (Exception ex)
@@ -75,6 +97,57 @@ public class RobotController
             Console.WriteLine($"Error in FK: {ex.Message}");
         }
 
-        return new double[] { 0, 0, 0, 0, 0, 0 };
+        return null;
     }
+}
+
+public class FkResult
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
+    public double W { get; set; }
+    public double P { get; set; }
+    public double R { get; set; }
+    public Configuration Configuration { get; set; }
+}
+
+public class Configuration
+{
+    public WristFlip WristFlip { get; set; }
+    public ArmUpDown ArmUpDown { get; set; }
+    public ArmLeftRight ArmLeftRight { get; set; }
+    public ArmFrontBack ArmFrontBack { get; set; }
+    public int TurnAxis4 { get; set; }
+    public int TurnAxis5 { get; set; }
+    public int TurnAxis6 { get; set; }
+    public string ConfigString { get; set; }
+}
+
+public enum WristFlip
+{
+    Unknown,
+    Flip,
+    NoFlip,
+}
+
+public enum ArmUpDown
+{
+    Unknown,
+    Up,
+    Down,
+}
+
+public enum ArmLeftRight
+{
+    Unknown,
+    Left,
+    Right,
+}
+
+public enum ArmFrontBack
+{
+    Unknown,
+    Front,
+    Back,
 }
