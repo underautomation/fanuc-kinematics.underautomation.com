@@ -67,6 +67,15 @@ export class RobotService {
             }
             this.isInitialized = true;
             console.log("Blazor initialized");
+
+            // Prewarm the library to avoid 30s delay on first call
+            console.log("Prewarming .NET Library...");
+            try {
+                await window.DotNet.invokeMethodAsync('RobotLogic', 'Prewarm');
+                console.log("Prewarm complete");
+            } catch (err) {
+                console.warn("Prewarm failed (safe to ignore if just started):", err);
+            }
         })();
 
         return this.initPromise;

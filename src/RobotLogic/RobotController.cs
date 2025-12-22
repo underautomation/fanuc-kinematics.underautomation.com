@@ -99,6 +99,21 @@ public class RobotController
 
         return null;
     }
+
+    [JSInvokable]
+    public static void Prewarm()
+    {
+        // Force initialization of library structures
+        try
+        {
+            if (_dhParameters == null) _dhParameters = new DhParameters(new Crx10iaLDhmParameters());
+            var joints = new JointsPosition(0, 0, 0, 0, 0, 0);
+            KinematicsUtils.ForwardKinematics(joints, _dhParameters);
+        }
+        catch
+        {
+        }
+    }
 }
 
 public class FkResult
