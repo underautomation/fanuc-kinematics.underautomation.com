@@ -1,8 +1,10 @@
 
+import type { DhParameters } from '../services/RobotService';
 
 interface RobotModelProps {
     joints: number[];
     onTargetChange: (x: number, y: number, z: number, w: number, p: number, r: number) => void;
+    dhParameters: DhParameters | null;
 }
 
 const degToRad = (deg: number) => deg * Math.PI / 180;
@@ -12,7 +14,7 @@ const Axis = () => (
     <axesHelper args={[200]} />
 );
 
-export default function RobotModel({ joints, onTargetChange }: RobotModelProps) {
+export default function RobotModel({ joints, onTargetChange, dhParameters }: RobotModelProps) {
     void onTargetChange;
     // Fanuc J1-J6
     // Note: Rotations are simplified approximations of a standard 6-axis structure
@@ -31,10 +33,19 @@ export default function RobotModel({ joints, onTargetChange }: RobotModelProps) 
     const j5 = degToRad(joints[4]);
     const j6 = degToRad(joints[5]);
 
-    // Dimensions (mm)
-    const d1 = 400; // Base height
-    const a2 = 500; // Arm 1
-    const a3 = 500; // Arm 2
+    // Dimensions (mm) - Fallback to CRX-10iA/L default if not loaded yet
+    const d1 = 400; // Base height (approx)
+
+    // Use DH params if available. 
+    // DH A2 is usually the length of Arm 1 (J2 to J3)
+    // DH A3 is usually the length of Arm 2 (J3 to J4 center/elbow)
+    // If we look at FK: 
+    // T3 = DHm(..., a[2]=A2, ...) -> Distance from J2 to J3 along X is A2?
+    // Actually in standard DH, 'a' is length of common normal. 
+    // For Fanuc/Parallel bots, A2 is length of link 2, A3 is link 3 length (plus elbow offset)
+
+    const a2 = dhParameters ? dhParameters.a2 : 500;
+    const a3 = dhParameters ? dhParameters.a3 : 500;
 
 
     return (

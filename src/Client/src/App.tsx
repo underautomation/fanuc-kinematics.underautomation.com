@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, CssBaseline, CircularProgress, Typography } from '@mui/material';
-import { RobotService } from './services/RobotService';
+import { RobotService, ArmKinematicModels, DhParameters } from './services/RobotService';
 import Sidebar from './components/Sidebar';
 import Scene from './scene/Scene';
 
@@ -8,12 +8,20 @@ function App() {
   const [loading, setLoading] = useState(true);
   // Default joints (all zero)
   const [joints, setJoints] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+  const [model, setModel] = useState<ArmKinematicModels>(ArmKinematicModels.CRX10iA);
+  const [dhParameters, setDhParameters] = useState<DhParameters | null>(null);
 
   useEffect(() => {
     RobotService.init()
       .then(() => setLoading(false))
       .catch(err => console.error("Failed to init Blazor", err));
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      RobotService.getDhParameters(model).then(setDhParameters);
+    }
+  }, [loading, model]);
 
   if (loading) {
     return (
@@ -30,11 +38,15 @@ function App() {
       <Sidebar
         joints={joints}
         onJointsChange={setJoints}
+        model={model}
+        onModelChange={setModel}
       />
       <Box sx={{ flexGrow: 1, position: 'relative', height: '100%' }}>
         <Scene
           joints={joints}
           onJointsChange={setJoints}
+          model={model}
+          dhParameters={dhParameters}
         />
       </Box>
     </Box>

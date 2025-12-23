@@ -11,15 +11,18 @@ public class RobotController
     private static DhParameters? _dhParameters;
 
     [JSInvokable]
-    public static double[][] CalculateInverseKinematics(double x, double y, double z, double w, double p, double r)
+    public static DhParameters GetDhParameters(ArmKinematicModels model)
+    {
+        return DhParameters.FromArmKinematicModel(model);
+    }
+
+    [JSInvokable]
+    public static double[][] CalculateInverseKinematics(double x, double y, double z, double w, double p, double r,
+        ArmKinematicModels model)
     {
         try
         {
-            if (_dhParameters == null)
-            {
-                // Initialize parameters for CRX-10iA/L
-                _dhParameters = new DhParameters(new Crx10iaLDhmParameters());
-            }
+            var dhParameters = DhParameters.FromArmKinematicModel(model);
 
             // Create target position
             var target = new CartesianPosition();
@@ -32,7 +35,7 @@ public class RobotController
 
             // Calculate Inverse Kinematics
             // Returns array of possible joint configurations
-            var solutions = KinematicsUtils.InverseKinematics(target, _dhParameters);
+            var solutions = KinematicsUtils.InverseKinematics(target, dhParameters);
 
             if (solutions != null && solutions.Length > 0)
             {
@@ -56,17 +59,15 @@ public class RobotController
     }
 
     [JSInvokable]
-    public static FkResult? CalculateForwardKinematics(double j1, double j2, double j3, double j4, double j5, double j6)
+    public static FkResult? CalculateForwardKinematics(double j1, double j2, double j3, double j4, double j5, double j6,
+        ArmKinematicModels model)
     {
         try
         {
-            if (_dhParameters == null)
-            {
-                _dhParameters = new DhParameters(new Crx10iaLDhmParameters());
-            }
+            var dhParameters = DhParameters.FromArmKinematicModel(model);
 
             var joints = new JointsPosition(j1, j2, j3, j4, j5, j6);
-            var cartesian = KinematicsUtils.ForwardKinematics(joints, _dhParameters);
+            var cartesian = KinematicsUtils.ForwardKinematics(joints, dhParameters);
 
             if (cartesian != null)
             {

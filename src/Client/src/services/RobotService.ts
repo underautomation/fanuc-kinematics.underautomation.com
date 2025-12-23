@@ -40,6 +40,18 @@ export interface FkResult {
     configuration: Configuration;
 }
 
+export const ArmKinematicModels = { CRX10iA: 0, CRX10iAL: 1 } as const;
+export type ArmKinematicModels = typeof ArmKinematicModels[keyof typeof ArmKinematicModels];
+
+export interface DhParameters {
+    a1: number;
+    a2: number;
+    a3: number;
+    d4: number;
+    d5: number;
+    d6: number;
+}
+
 export class RobotService {
     private static initPromise: Promise<void> | null = null;
     private static isInitialized = false;
@@ -81,15 +93,15 @@ export class RobotService {
         return this.initPromise;
     }
 
-    static async calculateIK(x: number, y: number, z: number, w: number, p: number, r: number): Promise<Joints[]> {
+    static async calculateIK(x: number, y: number, z: number, w: number, p: number, r: number, model: ArmKinematicModels): Promise<Joints[]> {
         if (!this.isInitialized) {
             console.warn("Blazor not initialized yet");
             throw new Error("Blazor not initialized");
         }
 
         try {
-            console.log(`Call IK: X=${x}, Y=${y}, Z=${z}, W=${w}, P=${p}, R=${r}`);
-            const result = await window.DotNet.invokeMethodAsync('RobotLogic', 'CalculateInverseKinematics', x, y, z, w, p, r);
+            console.log(`Call IK: X=${x}, Y=${y}, Z=${z}, W=${w}, P=${p}, R=${r}, Model=${model}`);
+            const result = await window.DotNet.invokeMethodAsync('RobotLogic', 'CalculateInverseKinematics', x, y, z, w, p, r, model);
             console.log("IK Result:", result);
             return result as Joints[];
         } catch (e) {
@@ -98,13 +110,25 @@ export class RobotService {
         }
     }
 
-    static async calculateFK(joints: number[]): Promise<FkResult | null> {
+    static async calculateFK(joints: number[], model: ArmKinematicModels): Promise<FkResult | null> {
         if (!this.isInitialized) return null;
         try {
-            const result = await window.DotNet.invokeMethodAsync('RobotLogic', 'CalculateForwardKinematics', ...joints);
+            const result = await window.DotNet.invokeMethodAsync('RobotLogic', 'CalculateForwardKinematics', ...joints, model);
             return result as FkResult;
         } catch (e) {
             console.error("FK Error", e);
+            return null;
+        }
+    }
+
+    static async getDhParameters(model: ArmKinematicModels): Promise<DhParameters | null> {
+        if (!this.isInitialized) return null;
+        try {
+            const result = await window.DotNet.invokeMethodAsync('RobotLogic', 'GetDhParameters', model);
+            console.log("DH Params:", result);
+            return result as DhParameters;
+        } catch (e) {
+            console.error("GetDhParameters Error", e);
             return null;
         }
     }

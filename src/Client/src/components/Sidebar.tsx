@@ -1,14 +1,16 @@
-import { Box, Paper, Slider, TextField, Typography, Button, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Paper, Slider, TextField, Typography, Button, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { RobotService, WristFlip, ArmUpDown, ArmLeftRight, ArmFrontBack } from '../services/RobotService';
+import { RobotService, WristFlip, ArmUpDown, ArmLeftRight, ArmFrontBack, ArmKinematicModels } from '../services/RobotService';
 import type { FkResult, Joints } from '../services/RobotService';
 
 interface SidebarProps {
     joints: number[];
     onJointsChange: (j: number[]) => void;
+    model: ArmKinematicModels;
+    onModelChange: (m: ArmKinematicModels) => void;
 }
 
-export default function Sidebar({ joints, onJointsChange }: SidebarProps) {
+export default function Sidebar({ joints, onJointsChange, model, onModelChange }: SidebarProps) {
     const [cartesian, setCartesian] = useState({ x: 400, y: 0, z: 400, w: 180, p: 0, r: 0 });
     const [fkResult, setFkResult] = useState<FkResult | null>(null);
     const [ikSolutions, setIkSolutions] = useState<Joints[]>([]);
@@ -20,7 +22,7 @@ export default function Sidebar({ joints, onJointsChange }: SidebarProps) {
     useEffect(() => {
         let active = true;
         const calc = async () => {
-            const res = await RobotService.calculateFK(joints);
+            const res = await RobotService.calculateFK(joints, model);
             if (active && res) {
                 setFkResult(res);
                 // Also update the cartesian inputs to match current robot position? 
@@ -40,7 +42,7 @@ export default function Sidebar({ joints, onJointsChange }: SidebarProps) {
         };
         calc();
         return () => { active = false; };
-    }, [joints]);
+    }, [joints, model]);
 
     const handleSliderChange = (idx: number, val: number | number[]) => {
         const newJoints = [...joints];
@@ -55,7 +57,7 @@ export default function Sidebar({ joints, onJointsChange }: SidebarProps) {
     const solveIK = async () => {
         const result = await RobotService.calculateIK(
             cartesian.x, cartesian.y, cartesian.z,
-            cartesian.w, cartesian.p, cartesian.r
+            cartesian.w, cartesian.p, cartesian.r, model
         );
         setIkSolutions(result);
         if (result.length > 0) {
@@ -75,6 +77,20 @@ export default function Sidebar({ joints, onJointsChange }: SidebarProps) {
     return (
         <Paper sx={{ width: 360, p: 2, height: '100%', overflowY: 'auto', zIndex: 10 }}>
             <Typography variant="h6" gutterBottom>Fanuc Control</Typography>
+
+            <Typography variant="h6" gutterBottom>Fanuc Control</Typography>
+
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel>Robot Model</InputLabel>
+                <Select
+                    value={model}
+                    label="Robot Model"
+                    onChange={(e) => onModelChange(Number(e.target.value) as ArmKinematicModels)}
+                >
+                    <MenuItem value={ArmKinematicModels.CRX10iA}>CRX-10iA (Short)</MenuItem>
+                    <MenuItem value={ArmKinematicModels.CRX10iAL}>CRX-10iA/L (Long)</MenuItem>
+                </Select>
+            </FormControl>
 
             <Divider sx={{ my: 2 }}>Joints (FK)</Divider>
             {joints.map((j, i) => (
