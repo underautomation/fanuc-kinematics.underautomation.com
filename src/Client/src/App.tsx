@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, CssBaseline, CircularProgress, Typography } from '@mui/material';
-import { RobotService, ArmKinematicModels, DhParameters } from './services/RobotService';
+import { RobotService, ArmKinematicModels } from './services/RobotService';
+import type { DhParameters } from './services/RobotService';
 import Sidebar from './components/Sidebar';
 import Scene from './scene/Scene';
 

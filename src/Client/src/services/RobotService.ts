@@ -40,7 +40,7 @@ export interface FkResult {
     configuration: Configuration;
 }
 
-export const ArmKinematicModels = { CRX10iA: 0, CRX10iAL: 1 } as const;
+export const ArmKinematicModels = { CRX10iA: 15, CRX10iAL: 16 } as const;
 export type ArmKinematicModels = typeof ArmKinematicModels[keyof typeof ArmKinematicModels];
 
 export interface DhParameters {

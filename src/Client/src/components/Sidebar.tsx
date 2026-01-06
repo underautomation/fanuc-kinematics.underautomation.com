@@ -78,8 +78,6 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange }
         <Paper sx={{ width: 360, p: 2, height: '100%', overflowY: 'auto', zIndex: 10 }}>
             <Typography variant="h6" gutterBottom>Fanuc Control</Typography>
 
-            <Typography variant="h6" gutterBottom>Fanuc Control</Typography>
-
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
                 <InputLabel>Robot Model</InputLabel>
                 <Select
