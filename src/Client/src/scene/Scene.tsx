@@ -24,6 +24,7 @@ export default function Scene({ joints, onJointsChange, model, dhParameters }: S
                 joints={joints}
                 onTargetChange={() => { }}
                 dhParameters={dhParameters}
+                model={model}
             />
 
             <OrbitControls makeDefault enabled={true} />
