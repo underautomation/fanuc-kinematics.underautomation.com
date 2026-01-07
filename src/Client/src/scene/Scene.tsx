@@ -22,6 +22,7 @@ export default function Scene({ joints, onJointsChange, model, dhParameters }: S
 
             <RobotModel
                 joints={joints}
+                onJointsChange={onJointsChange}
                 onTargetChange={() => { }}
                 dhParameters={dhParameters}
                 model={model}
