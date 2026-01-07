@@ -31,6 +31,7 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
         if (tcpRef.current && targetRef.current) {
             const worldPos = new Vector3();
             tcpRef.current.getWorldPosition(worldPos);
+            targetRef.current.parent?.position.copy(worldPos);
         }
     }, [tcpRef, targetRef, joints, model]);
 
