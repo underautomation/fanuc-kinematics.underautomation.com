@@ -9,9 +9,10 @@ interface SceneProps {
     onJointsChange: (j: number[]) => void;
     model: ArmKinematicModels;
     dhParameters: DhParameters | null;
+    previewJoints?: number[] | null;
 }
 
-export default function Scene({ joints, onJointsChange, model, dhParameters }: SceneProps) {
+export default function Scene({ joints, onJointsChange, model, dhParameters, previewJoints }: SceneProps) {
     return (
         <Canvas>
             <OrthographicCamera makeDefault position={[1000, 1000, 1000]} zoom={0.5} near={-2000} far={10000} />
@@ -26,6 +27,7 @@ export default function Scene({ joints, onJointsChange, model, dhParameters }: S
                 onTargetChange={() => { }}
                 dhParameters={dhParameters}
                 model={model}
+                previewJoints={previewJoints}
             />
 
             <OrbitControls makeDefault enabled={true} />

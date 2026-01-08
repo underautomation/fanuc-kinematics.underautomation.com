@@ -1,7 +1,7 @@
 import { ArmKinematicModels } from '../services/RobotService';
 import type { DhParameters } from '../services/RobotService';
 import { useGLTF, PivotControls } from '@react-three/drei';
-import { Mesh, Vector3, Group, Quaternion, Color, AxesHelper, Euler } from 'three';
+import { Mesh, Vector3, Group, Quaternion, Color, AxesHelper, Euler, MeshStandardMaterial } from 'three';
 import { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { KinematicsHelper } from '../services/KinematicsHelper';
@@ -12,6 +12,7 @@ interface RobotModelProps {
     onJointsChange: (j: number[]) => void;
     dhParameters: DhParameters | null;
     model: ArmKinematicModels;
+    previewJoints?: number[] | null;
 }
 
 const degToRad = (deg: number) => deg * Math.PI / 180;
@@ -27,11 +28,14 @@ interface KinematicChainProps {
     model: ArmKinematicModels;
     dhParameters: DhParameters;
     visible?: boolean;
+    isGhost?: boolean;
+    ghostColor?: string;
+    ghostOpacity?: number;
 }
 
 // Separate component for the robot structure logic
 // Using forwardRef to allow parent to drive it imperatively (for high-perf loop)
-const KinematicChain = forwardRef<KinematicChainRef, KinematicChainProps>(({ model, dhParameters, visible = true }, ref) => {
+const KinematicChain = forwardRef<KinematicChainRef, KinematicChainProps>(({ model, dhParameters, visible = true, isGhost = false, ghostColor = '#a0a0a0', ghostOpacity = 0.4 }, ref) => {
     const j1Ref = useRef<Group>(null);
     const j2Ref = useRef<Group>(null);
     const j3Ref = useRef<Group>(null);
@@ -43,6 +47,7 @@ const KinematicChain = forwardRef<KinematicChainRef, KinematicChainProps>(({ mod
     useImperativeHandle(ref, () => ({
         getTcpRef: () => tcpRef.current,
         setJoints: (joints: number[]) => {
+            if (!visible) return; // Optimization: don't compute potentially expensive updates if not visible? Actually transforms are cheap, but let's keep it safe.
             const v = joints.map(degToRad);
             if (j1Ref.current) j1Ref.current.rotation.set(Math.PI / 2, v[0], 0);
             if (j2Ref.current) j2Ref.current.rotation.set(0, 0, -v[1]);
@@ -60,13 +65,32 @@ const KinematicChain = forwardRef<KinematicChainRef, KinematicChainProps>(({ mod
 
     // Part Renderer
     const Part = ({ name, parentWorldX = 0, parentWorldY = 0, parentWorldZ = 0 }: { name: string; parentWorldX?: number; parentWorldY?: number; parentWorldZ?: number }) => {
-        if (!visible) return null; // Don't render meshes if invisible (Ghost)
+        if (!visible) return null;
 
         const nodeName = Object.keys(gltfNodes).find(key => key.startsWith(name));
         const node = nodeName ? gltfNodes[nodeName] : undefined;
         if (!node) return null;
 
         const sceneNode = node.clone();
+
+        // Ghost Material Application
+        if (isGhost) {
+            sceneNode.traverse((child) => {
+                if ((child as Mesh).isMesh) {
+                    const mesh = child as Mesh;
+                    // We clone the material so we don't affect other instances
+                    // Ideally we should cache this material but for < 3 instances it's fine
+                    mesh.material = new MeshStandardMaterial({
+                        color: new Color(ghostColor),
+                        transparent: true,
+                        opacity: ghostOpacity,
+                        roughness: 0.5,
+                        metalness: 0.1
+                    });
+                }
+            });
+        }
+
         // Calc offsets (Standard Fanuc Model / GLB Logic)
         const nodeY = node.position.y * 1000;
         const nodeX = node.position.x * 1000;
@@ -98,7 +122,7 @@ const KinematicChain = forwardRef<KinematicChainRef, KinematicChainProps>(({ mod
 
             {/* Base Group Reference */}
             <group position={[0, d1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                {visible && <Axis />}
+                {visible && !isGhost && <Axis />}
 
                 {/* J1 */}
                 <group ref={j1Ref}>
@@ -149,11 +173,12 @@ const Axis = () => {
     return <axesHelper ref={axesRef} args={[200]} />;
 };
 
-export default function RobotModel({ joints, onTargetChange, onJointsChange, dhParameters, model }: RobotModelProps) {
+export default function RobotModel({ joints, onTargetChange, onJointsChange, dhParameters, model, previewJoints }: RobotModelProps) {
     void onTargetChange;
 
     const visualChainRef = useRef<KinematicChainRef>(null);
     const targetChainRef = useRef<KinematicChainRef>(null);
+    const previewChainRef = useRef<KinematicChainRef>(null);
 
     const baseGroupRef = useRef<Group>(null);
     const targetRef = useRef<Group>(null);
@@ -163,6 +188,9 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
     // Current visual joints (interpolated)
     const visualJoints = useRef<number[]>([...joints]);
 
+    // Track if visual is synced with target (to toggle ghost visibility)
+    const [isSynced, setIsSynced] = useState(true);
+
     // UseFrame for Smooth Interpolation and Logic Sync
     useFrame((_, delta) => {
         if (!visualChainRef.current || !targetChainRef.current) return;
@@ -170,25 +198,38 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
         // 0. Update Target Chain (Always instant)
         targetChainRef.current.setJoints(joints);
 
+        // Update Preview Chain
+        if (previewChainRef.current && previewJoints) {
+            previewChainRef.current.setJoints(previewJoints);
+        }
+
         // 1. Interpolate visual joints towards target `joints`
         const speed = 4.0;
+        let moving = false;
 
         for (let i = 0; i < 6; i++) {
             const diff = joints[i] - visualJoints.current[i];
             if (Math.abs(diff) > 0.001) {
                 // Interpolate
                 visualJoints.current[i] += diff * Math.min(1, speed * delta);
+                moving = true;
             } else {
                 visualJoints.current[i] = joints[i];
             }
         }
 
+        // Determine sync status for Ghost visibility
+        // If we are moving, we are NOT synced.
+        // We use state to trigger re-render of Ghost prop if needed.
+        // BUT setting state in useFrame is DANGEROUS unless throttled or checked carefully.
+        // Let's use a threshold.
+        if (moving && isSynced) setIsSynced(false);
+        if (!moving && !isSynced) setIsSynced(true);
+
         // Update Visual Chain
         visualChainRef.current.setJoints(visualJoints.current);
 
         // 2. Sync PivotControls with TARGET TCP
-        // We sync to the *Target* chain, which represents the goal position.
-        // This ensures that when the robot moves towards the target, the Gizmo (which IS the target) doesn't run away.
         const tcpTarget = targetChainRef.current.getTcpRef();
 
         if (tcpTarget && pivotGroupRef.current && !isDraggingRef.current) {
@@ -210,12 +251,50 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
     const [pivotKey, setPivotKey] = useState(0);
 
     return (
+
         <group>
-            {/* Wrapper for PivotControls */}
+            {/* 1. VISUAL ROBOT (Interpolated) */}
+            <KinematicChain
+                ref={visualChainRef}
+                model={model}
+                dhParameters={dhParameters!}
+                visible={!!dhParameters}
+            />
+
+            {/* 2. TARGET ROBOT (Ghost - Moves Instantly) 
+                Visible only when 'synced' is false (robot is moving towards target)
+            */}
+            <KinematicChain
+                ref={targetChainRef}
+                model={model}
+                dhParameters={dhParameters!}
+                visible={!!dhParameters && !isSynced}
+                isGhost={true}
+                ghostColor="#a0a0a0"
+                ghostOpacity={0.25}
+            />
+
+            {/* 3. PREVIEW ROBOT (Ghost - Hover Preview) 
+                Visible only when previewJoints is set
+            */}
+            {previewJoints && (
+                <KinematicChain
+                    ref={previewChainRef}
+                    model={model}
+                    dhParameters={dhParameters!}
+                    visible={!!dhParameters}
+                    isGhost={true}
+                    ghostColor="#4fc3f7"
+                    ghostOpacity={0.4}
+                />
+            )}
+
+            {/* Pivot Controls - Attached to the TARGET (Invisible most of the time) */}
             <group ref={pivotGroupRef}>
                 <PivotControls
                     key={pivotKey}
                     scale={100}
+
                     disableRotations={false}
                     activeAxes={[true, true, true]} // XYZ translations
                     disableScaling={true}
@@ -242,7 +321,6 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
                             targetRef.current.updateMatrix();
 
                             // 3. Enable sync & Refresh PivotControls (Key Reset)
-                            // This ensures any internal state in PivotControls is wiped, preventing visual jumps
                             isDraggingRef.current = false;
                             setPivotKey((k: number) => k + 1);
 
@@ -258,7 +336,7 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
                             const p = radToDeg(euler.y);
                             const r = radToDeg(euler.z);
 
-                            console.log(`Goal: X=${localPos.x.toFixed(1)}...`);
+                            console.log(`Goal: X=${localPos.x.toFixed(1)}, Y=${localPos.y.toFixed(1)}, Z=${localPos.z.toFixed(1)}`);
 
                             // 5. Solve IK
                             let best = await KinematicsHelper.findBestJoints(
@@ -287,47 +365,17 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
                         }
                     }}
                 >
+                    {/* This is the invisible target frame we attach the gizmo to */}
                     <group ref={targetRef} />
                 </PivotControls>
             </group>
 
-            {/* Base Group Reference (Anchor for Local Coords calc) */}
-            {/* The base of the robot is at [0, d1, 0] relative to root, but we need the Scene Root for Reference? 
-                Actually, the robot's base frame (Fanuc Frame) is usually at J1 intersection? 
-                Previous code had `baseGroupRef` at `[0, d1, 0]`. Let's keep that structure. 
-                But KinematicChain handles the internal shifts.
-                We need `baseGroupRef` just to do `worldToLocal` conversions matching the Robot Logic.
-                The Robot Logic defines World (0,0,0) as bottom of base? 
-                Or (0,0,0) as Center of J1 rotation?
-                Fanuc kinematic: (0,0,0) is usually intersection of J1/J2? Or Base?
-                Looking at Previous Code:
-                `<group ref={baseGroupRef} position={[0, d1, 0]} rotation={[-Math.PI / 2, 0, 0]}>`
-                This implies IK expects coords relative to this Frame.
-                So we must keep this frame for calculation context.
-            */}
+            {/* Virtual Base Frame for Calculations */}
             <group ref={baseGroupRef} position={[0, 245, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 {/* This group is invisible, just used for Matrix Math relative to the IK Frame */}
             </group>
 
-
-            {/* Visual Robot */}
-            <KinematicChain
-                ref={visualChainRef}
-                model={model}
-                dhParameters={dhParameters}
-                visible={true}
-            />
-
-            {/* Target Robot (Ghost) */}
-            {/* Invisible, moves instantly to 'joints' (Target), used to anchor PivotControls */}
-            <KinematicChain
-                ref={targetChainRef}
-                model={model}
-                dhParameters={dhParameters}
-                visible={false}
-            />
-
-        </group >
+        </group>
     );
 }
 

@@ -27,6 +27,9 @@ function App() {
   const [isPeeking, setIsPeeking] = useState(false);
   const hasPeeked = useRef(false);
 
+  // Preview state for Ghost Robot
+  const [previewJoints, setPreviewJoints] = useState<number[] | null>(null);
+
   useEffect(() => {
     // Logic to handle initial mobile state if screen changes (optional, but good for resizing)
     // If we want it strictly "on arrival", relying on initial useState is fine.
@@ -107,6 +110,7 @@ function App() {
               onJointsChange={setJoints}
               model={model}
               dhParameters={dhParameters}
+              previewJoints={previewJoints}
             />
           </Box>
 
@@ -114,6 +118,7 @@ function App() {
           <Sidebar
             joints={joints}
             onJointsChange={setJoints}
+            onPreviewJoints={setPreviewJoints}
             model={model}
             onModelChange={setModel}
             isOpen={sidebarOpen}

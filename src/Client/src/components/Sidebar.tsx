@@ -10,6 +10,7 @@ import { KinematicsHelper, type SolutionWithConfig } from '../services/Kinematic
 interface SidebarProps {
     joints: number[];
     onJointsChange: (j: number[]) => void;
+    onPreviewJoints: (j: number[] | null) => void;
     model: ArmKinematicModels;
     onModelChange: (m: ArmKinematicModels) => void;
     isOpen: boolean;
@@ -19,7 +20,7 @@ interface SidebarProps {
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 600;
 
-export default function Sidebar({ joints, onJointsChange, model, onModelChange, isOpen, isPeeking = false }: SidebarProps) {
+export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model, onModelChange, isOpen, isPeeking = false }: SidebarProps) {
     const [cartesian, setCartesian] = useState({ x: 400, y: 0, z: 400, w: 180, p: 0, r: 0 });
     const [fkResult, setFkResult] = useState<FkResult | null>(null);
     const [ikSolutions, setIkSolutions] = useState<SolutionWithConfig[]>([]);
@@ -67,7 +68,7 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
     useEffect(() => {
         debouncedCalc(joints, model, isEditingCartesian);
         return () => {
-            // Optional: debouncedCalc.cancel(); 
+            // Optional: debouncedCalc.cancel();
         };
     }, [joints, model, isEditingCartesian, debouncedCalc]);
 
@@ -214,6 +215,8 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                                     color={fkResult?.configuration.configString === sol.configString ? "primary" : "default"}
                                     variant={fkResult?.configuration.configString === sol.configString ? "filled" : "outlined"}
                                     clickable
+                                    onMouseEnter={() => onPreviewJoints(sol.joints)}
+                                    onMouseLeave={() => onPreviewJoints(null)}
                                 />
                             ))}
                         </Stack>
