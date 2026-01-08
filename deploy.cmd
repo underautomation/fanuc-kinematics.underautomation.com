@@ -1,2 +1,1 @@
-cd src/Client
-npx vercel deploy
+npx vercel --prod

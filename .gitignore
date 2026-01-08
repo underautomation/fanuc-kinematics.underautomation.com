@@ -58,3 +58,5 @@ nunit-*.xml
 /.vs
 /src/RobotLogic/Properties/PublishProfiles/*.user
 /src/RobotLogic/*.user
+
+.vercel
