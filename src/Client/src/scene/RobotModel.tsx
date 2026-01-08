@@ -172,14 +172,12 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
 
         // 1. Interpolate visual joints towards target `joints`
         const speed = 4.0;
-        let changed = false;
 
         for (let i = 0; i < 6; i++) {
             const diff = joints[i] - visualJoints.current[i];
             if (Math.abs(diff) > 0.001) {
                 // Interpolate
                 visualJoints.current[i] += diff * Math.min(1, speed * delta);
-                changed = true;
             } else {
                 visualJoints.current[i] = joints[i];
             }
@@ -307,7 +305,7 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
                 This implies IK expects coords relative to this Frame.
                 So we must keep this frame for calculation context.
             */}
-            <group ref={baseGroupRef} position={[0, dhParameters.j1LinkLength ? dhParameters.j1LinkLength * 1000 : 245, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <group ref={baseGroupRef} position={[0, 245, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 {/* This group is invisible, just used for Matrix Math relative to the IK Frame */}
             </group>
 

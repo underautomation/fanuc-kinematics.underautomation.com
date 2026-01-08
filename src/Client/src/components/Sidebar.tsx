@@ -1,6 +1,7 @@
 import { Box, Paper, Slider, Typography, Divider, Select, MenuItem, InputLabel, FormControl, Chip, Stack } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import debounce from 'lodash.debounce';
 import { RobotService, WristFlip, ArmUpDown, ArmLeftRight, ArmFrontBack, ArmKinematicModels } from '../services/RobotService';
 import type { FkResult } from '../services/RobotService';
 import NumberInput from './NumberInput';
@@ -33,49 +34,53 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
     // Joint Limits (approx for generic 6-axis)
     const limits = [-170, 170];
 
-    // Calculate FK when joints change
-    useEffect(() => {
-        let active = true;
-        const calc = async () => {
-            const res = await RobotService.calculateFK(joints, model);
-            if (active && res) {
-                setFkResult(res);
-                // Only update Cartesian state if user is NOT editing it
-                if (!isEditingCartesian) {
-                    setCartesian({
-                        x: Number(res.x.toFixed(2)),
-                        y: Number(res.y.toFixed(2)),
-                        z: Number(res.z.toFixed(2)),
-                        w: Number(res.w.toFixed(2)),
-                        p: Number(res.p.toFixed(2)),
-                        r: Number(res.r.toFixed(2))
-                    });
-                }
+    // Debounced kinematics calculation (FK + All IK Solutions)
+    const debouncedCalc = useMemo(
+        () => debounce(async (currJoints: number[], currModel: ArmKinematicModels, editing: boolean) => {
+            // 1. Calculate FK
+            const res = await RobotService.calculateFK(currJoints, currModel);
+            if (!res) return;
+
+            setFkResult(res);
+
+            // Update Cartesian display if not editing
+            if (!editing) {
+                setCartesian({
+                    x: Number(res.x.toFixed(2)),
+                    y: Number(res.y.toFixed(2)),
+                    z: Number(res.z.toFixed(2)),
+                    w: Number(res.w.toFixed(2)),
+                    p: Number(res.p.toFixed(2)),
+                    r: Number(res.r.toFixed(2))
+                });
             }
+
+            // 2. Calculate All IK Solutions (for Config list) based on the CURRENT FK Position
+            const solutions = await KinematicsHelper.getSolutionsWithConfigs(res, currModel);
+            setIkSolutions(solutions);
+
+        }, 250),
+        []
+    );
+
+    // Trigger calculation when joints/model change
+    useEffect(() => {
+        debouncedCalc(joints, model, isEditingCartesian);
+        return () => {
+            // Optional: debouncedCalc.cancel(); 
         };
-        calc();
-        return () => { active = false; };
-    }, [joints, model, isEditingCartesian]);
+    }, [joints, model, isEditingCartesian, debouncedCalc]);
 
     // When Cartesian values change (from input), solve IK and update best solution
-    // We use a ref to debounce or just fire on change. Ideally we want to fire when the user "commits" (Blur/Enter), 
-    // which NumberInput handles by calling onChange.
-    // But if we want live updates, we might want to debounce.
-    // The requirement says "Lors de la validation d'une valeur".
     const updateRobotFromCartesian = async (target: typeof cartesian) => {
-        // 1. Solve IK
-        const solutions = await KinematicsHelper.getSolutionsWithConfigs(target, model);
-        setIkSolutions(solutions);
-
-        // 2. Move robot to best solution (closest)
-        // We do this automatically to keep sync? 
-        // "Lors de la validation d'une valeur, utiliser le même algo que lors du déplacement du PivotControl"
-        if (solutions.length > 0) {
-            const best = await KinematicsHelper.findBestJoints(target, joints, model);
-            if (best) {
-                onJointsChange(best);
-            }
+        // Move robot to best solution (closest)
+        const best = await KinematicsHelper.findBestJoints(target, joints, model);
+        if (best) {
+            onJointsChange(best);
         }
+        // Note: We do NOT explicitly calculate IK solutions here update `ikSolutions`.
+        // The `onJointsChange` will update `joints`, which triggers the `useEffect(debouncedCalc)` above.
+        // This keeps the logic centralized.
     };
 
     const handleCartesianChange = (key: string, val: number) => {
