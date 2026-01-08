@@ -1,4 +1,5 @@
 import { Box, Paper, Slider, TextField, Typography, Button, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useState, useEffect, useCallback } from 'react';
 import { RobotService, WristFlip, ArmUpDown, ArmLeftRight, ArmFrontBack, ArmKinematicModels } from '../services/RobotService';
 import type { FkResult, Joints } from '../services/RobotService';
@@ -111,6 +112,7 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                 display: 'flex',
                 // Ensure clicks don't pass through
                 pointerEvents: isOpen ? 'auto' : 'none',
+                userSelect: 'none', // Prevent text selection during resize
             }}
         >
             <Paper
@@ -120,12 +122,13 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                     height: '100%',
                     p: 2,
                     overflowY: 'auto',
-                    // Transparency styles
-                    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+                    // Transparency styles - using theme alpha
+                    bgcolor: (theme) => alpha(theme.palette.background.paper, 0.7),
                     backdropFilter: 'blur(12px)',
-                    borderRight: '1px solid rgba(255, 255, 255, 0.3)',
-                    boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
+                    borderRight: (theme) => `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+                    boxShadow: '4px 0 24px rgba(0,0,0,0.2)', // Slightly stronger shadow for depth
                     flexShrink: 0,
+                    borderRadius: 0,
                 }}
             >
                 <Typography variant="h6" gutterBottom>Fanuc Control</Typography>
@@ -158,7 +161,7 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                 ))}
 
                 {fkResult && fkResult.configuration && (
-                    <Box sx={{ mt: 1, p: 1, bgcolor: 'rgba(255,255,255,0.4)', borderRadius: 1 }}>
+                    <Box sx={{ mt: 1, p: 1, bgcolor: (theme) => alpha(theme.palette.action.hover, 0.1), borderRadius: 1 }}>
                         <Typography variant="caption" display="block">
                             <b>Config:</b> {fkResult.configuration.configString}
                         </Typography>
@@ -182,10 +185,8 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                                 size="small"
                                 type="number"
                                 fullWidth
-                                InputProps={{ style: { fontSize: 12 } }}
-                                sx={{
-                                    '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.5)' }
-                                }}
+                                InputProps={{ style: { fontSize: 13 } }}
+                            // Theme handles input bg
                             />
                         </Box>
                     ))}
@@ -197,7 +198,7 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                 {ikSolutions.length > 0 && (
                     <Box mt={2}>
                         <Typography variant="subtitle2">Solutions ({ikSolutions.length})</Typography>
-                        <TableContainer component={Paper} sx={{ maxHeight: 200, mt: 1, bgcolor: 'rgba(255,255,255,0.5)' }}>
+                        <TableContainer component={Paper} sx={{ maxHeight: 200, mt: 1, bgcolor: 'transparent', boxShadow: 'none' }}>
                             <Table size="small" stickyHeader>
                                 <TableHead>
                                     <TableRow>
