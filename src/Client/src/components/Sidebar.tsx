@@ -1,8 +1,8 @@
 import { Box, Paper, Slider, Typography, Divider, Select, MenuItem, InputLabel, FormControl, Chip, Stack, CircularProgress } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import debounce from 'lodash.debounce';
-import { RobotService, WristFlip, ArmUpDown, ArmLeftRight, ArmFrontBack, ArmKinematicModels } from '../services/RobotService';
+import { RobotService, ArmKinematicModels } from '../services/RobotService';
 import type { FkResult } from '../services/RobotService';
 import NumberInput from './NumberInput';
 import { KinematicsHelper, type SolutionWithConfig } from '../services/KinematicsHelper';

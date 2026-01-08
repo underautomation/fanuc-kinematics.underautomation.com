@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ReactMarkdown from 'react-markdown';
@@ -8,8 +7,6 @@ interface InfoPopupProps {
     open: boolean;
     onClose: () => void;
 }
-
-const STORAGE_KEY = 'fanuc_kinematics_info_seen';
 
 export default function InfoPopup({ open, onClose }: InfoPopupProps) {
 
@@ -22,7 +19,7 @@ export default function InfoPopup({ open, onClose }: InfoPopupProps) {
             scroll="paper"
         >
             <DialogTitle sx={{ m: 0, p: 2 }}>
-                Fanuc Robot Simulator Info
+                About this project
                 <IconButton
                     aria-label="close"
                     onClick={onClose}
