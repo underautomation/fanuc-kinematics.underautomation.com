@@ -47,7 +47,8 @@ const KinematicChain = forwardRef<KinematicChainRef, KinematicChainProps>(({ mod
     useImperativeHandle(ref, () => ({
         getTcpRef: () => tcpRef.current,
         setJoints: (joints: number[]) => {
-            if (!visible) return; // Optimization: don't compute potentially expensive updates if not visible? Actually transforms are cheap, but let's keep it safe.
+            // We MUST update the joints even if valid/visible is false, 
+            // because the TargetChain (Ghost) is often invisible but used as the anchor for PivotControls.
             const v = joints.map(degToRad);
             if (j1Ref.current) j1Ref.current.rotation.set(Math.PI / 2, v[0], 0);
             if (j2Ref.current) j2Ref.current.rotation.set(0, 0, -v[1]);

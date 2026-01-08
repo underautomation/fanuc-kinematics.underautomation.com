@@ -44,7 +44,7 @@ export default function Header({ onToggleSidebar, onOpenInfo, sidebarOpen }: Hea
                         textOverflow: 'ellipsis'
                     }}
                 >
-                    Fanuc CRX Kinematics
+                    Fanuc Cobot Kinematics Playground
                 </Typography>
 
                 {/* Right: Branding & Actions */}
@@ -88,7 +88,7 @@ export default function Header({ onToggleSidebar, onOpenInfo, sidebarOpen }: Hea
                     <Tooltip title="View on GitHub">
                         <IconButton
                             color="inherit"
-                            href="https://github.com/underautomation/Fanuc.NET"
+                            href="https://github.com/underautomation/fanuc-kinematics.underautomation.com"
                             target="_blank"
                             rel="noopener noreferrer"
                             sx={{ ml: 0.5 }}
