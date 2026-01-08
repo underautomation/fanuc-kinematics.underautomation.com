@@ -1,7 +1,7 @@
 
 import { ArmKinematicModels, RobotService } from '../services/RobotService';
 import type { DhParameters } from '../services/RobotService';
-import { useGLTF, TransformControls } from '@react-three/drei';
+import { useGLTF, PivotControls } from '@react-three/drei';
 import { Mesh, Vector3, Group, Quaternion } from 'three';
 import { useRef, useEffect } from 'react';
 
@@ -26,14 +26,24 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
     const targetRef = useRef<Group>(null);
     const tcpRef = useRef<Group>(null);
 
-    // Sync TransformControls with TCP position on every frame (unless dragging)
+    const pivotGroupRef = useRef<Group>(null);
+
+    // Sync PivotControls with TCP position on every frame (unless dragging)
+    // And reset targetRef local position to avoid drift
     useEffect(() => {
-        if (tcpRef.current && targetRef.current) {
+        if (tcpRef.current && pivotGroupRef.current && targetRef.current) {
             const worldPos = new Vector3();
             tcpRef.current.getWorldPosition(worldPos);
             targetRef.current.parent?.position.copy(worldPos);
+
+            // Crucial: Reset the target inside PivotControls to 0,0,0 local
+            // because PivotControls moves its children when dragged.
+            // We want the visual gizmo to stay at the TCP, but we drive the robot
+            // based on the gizmo's world position, which we then snap back to.
+            //targetRef.current.position.set(0, 0, 0);
+            //targetRef.current.rotation.set(0, 0, 0);
         }
-    }, [tcpRef, targetRef, joints, model]);
+    }, [tcpRef, pivotGroupRef, targetRef, joints, model]);
 
     // Determine GLB file based on model
     const modelName = model === ArmKinematicModels.CRX10iAL ? 'CRX-10iAL' : 'CRX-10iA';
@@ -94,54 +104,59 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
 
     return (
         <group>
-            <TransformControls
-                mode="translate"
-                size={1}
-                onMouseUp={async (e) => {
-                    if (!baseGroupRef.current || !e.target || !e.target.object) {
-                        return;
-                    }
-
-                    // 1. Get new World Position
-                    const worldPos = new Vector3();
-                    e.target.object.getWorldPosition(worldPos);
-
-                    // 2. Convert to Base Frame (Local to baseGroupRef)
-                    const localPos = baseGroupRef.current.worldToLocal(worldPos.clone());
-
-                    // 3. Get current WPR (Orientation) via FK to maintain orientation
-                    const fk = await RobotService.calculateFK(joints, model);
-                    if (!fk) {
-                        return;
-                    }
-                    const { w, p, r } = fk;
-
-                    // 4. Solve IK
-                    const solutions = await RobotService.calculateIK(
-                        localPos.x, localPos.y, localPos.z,
-                        w, p, r,
-                        model
-                    );
-
-                    // 5. Find closest solution
-                    if (solutions.length > 0) {
-                        let best = solutions[0];
-                        let minDist = Infinity;
-                        for (const sol of solutions) {
-                            let dist = 0;
-                            // Calculate Euclidean distance in joint space
-                            for (let i = 0; i < 6; i++) dist += Math.pow(sol[i] - joints[i], 2);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                best = sol;
-                            }
+            {/* Wrapper for PivotControls to position it initially at TCP */}
+            <group ref={pivotGroupRef}>
+                <PivotControls
+                    scale={50}
+                    disableRotations={false}
+                    activeAxes={[true, true, true]} // XYZ translations
+                    onDragEnd={async () => {
+                        if (!baseGroupRef.current || !targetRef.current) {
+                            return;
                         }
-                        onJointsChange(best);
-                    }
-                }}
-            >
-                <group ref={targetRef} name="targetRef" />
-            </TransformControls>
+
+                        // 1. Get new World Position from the targetRef
+                        // PivotControls moves its children (targetRef) in world space
+                        const worldPos = new Vector3();
+                        targetRef.current.getWorldPosition(worldPos);
+
+                        // 2. Convert to Base Frame (Local to baseGroupRef)
+                        const localPos = baseGroupRef.current.worldToLocal(worldPos.clone());
+
+                        // 3. Get current WPR (Orientation) via FK to maintain orientation
+                        const fk = await RobotService.calculateFK(joints, model);
+                        if (!fk) {
+                            return;
+                        }
+                        const { w, p, r } = fk;
+
+                        // 4. Solve IK
+                        const solutions = await RobotService.calculateIK(
+                            localPos.x, localPos.y, localPos.z,
+                            w, p, r,
+                            model
+                        );
+
+                        // 5. Find closest solution
+                        if (solutions.length > 0) {
+                            let best = solutions[0];
+                            let minDist = Infinity;
+                            for (const sol of solutions) {
+                                let dist = 0;
+                                // Calculate Euclidean distance in joint space
+                                for (let i = 0; i < 6; i++) dist += Math.pow(sol[i] - joints[i], 2);
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    best = sol;
+                                }
+                            }
+                            onJointsChange(best);
+                        }
+                    }}
+                >
+                    <group ref={targetRef} />
+                </PivotControls>
+            </group>
 
             {/* Base : J1BASE_UNIT + CONNECTOR_UNIT */}
             <group position={[0, 0, 0]}>
