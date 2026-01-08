@@ -57,3 +57,4 @@ nunit-*.xml
 /src/RobotLogic/build.log
 /.vs
 /src/RobotLogic/Properties/PublishProfiles/*.user
+/src/RobotLogic/*.user

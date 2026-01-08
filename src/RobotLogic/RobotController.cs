@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using Microsoft.JSInterop;
 using UnderAutomation.Fanuc.Common;
 using UnderAutomation.Fanuc.Kinematics;
@@ -8,8 +6,6 @@ namespace RobotLogic;
 
 public class RobotController
 {
-    private static DhParameters? _dhParameters;
-
     [JSInvokable]
     public static DhParameters GetDhParameters(ArmKinematicModels model)
     {
@@ -99,21 +95,6 @@ public class RobotController
         }
 
         return null;
-    }
-
-    [JSInvokable]
-    public static void Prewarm()
-    {
-        // Force initialization of library structures
-        try
-        {
-            if (_dhParameters == null) _dhParameters = new DhParameters(new Crx10iaLDhmParameters());
-            var joints = new JointsPosition(0, 0, 0, 0, 0, 0);
-            KinematicsUtils.ForwardKinematics(joints, _dhParameters);
-        }
-        catch
-        {
-        }
     }
 }
 
