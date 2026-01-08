@@ -10,12 +10,13 @@ interface SidebarProps {
     model: ArmKinematicModels;
     onModelChange: (m: ArmKinematicModels) => void;
     isOpen: boolean;
+    isPeeking?: boolean;
 }
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 600;
 
-export default function Sidebar({ joints, onJointsChange, model, onModelChange, isOpen }: SidebarProps) {
+export default function Sidebar({ joints, onJointsChange, model, onModelChange, isOpen, isPeeking = false }: SidebarProps) {
     const [cartesian, setCartesian] = useState({ x: 400, y: 0, z: 400, w: 180, p: 0, r: 0 });
     const [fkResult, setFkResult] = useState<FkResult | null>(null);
     const [ikSolutions, setIkSolutions] = useState<Joints[]>([]);
@@ -96,7 +97,15 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
 
     // Close sidebar logic - instead of unmounting, we animate width to 0
     // But we need to keep rendering it to animate.
-    const effectiveWidth = isOpen ? width : 0;
+    // Peek logic: show 80px (approx 20% of smallest mobile) or 20% width?
+    // Let's go with fixed small width for peek to suggest "there is something".
+    const getEffectiveWidth = () => {
+        if (isOpen) return width;
+        if (isPeeking) return MAX_WIDTH; // Just enough to see edge/color
+        return 0;
+    };
+
+    const effectiveWidth = getEffectiveWidth();
 
     return (
         <Box
@@ -107,7 +116,7 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                 bottom: 0,
                 zIndex: 10,
                 width: effectiveWidth,
-                transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth ease-in-out
+                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth ease-in-out
                 overflow: 'hidden', // Hide content when collapsed
                 display: 'flex',
                 // Ensure clicks don't pass through
@@ -131,9 +140,9 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                     borderRadius: 0,
                 }}
             >
-                <Typography variant="h6" gutterBottom>Fanuc Control</Typography>
+                {/* Title removed for density */}
 
-                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <FormControl fullWidth size="small" sx={{ mb: 1, mt: 1 }}>
                     <InputLabel>Robot Model</InputLabel>
                     <Select
                         value={model}
@@ -145,9 +154,9 @@ export default function Sidebar({ joints, onJointsChange, model, onModelChange, 
                     </Select>
                 </FormControl>
 
-                <Divider sx={{ my: 2 }}>Joints (FK)</Divider>
+                <Divider sx={{ my: 1 }}>Joints (FK)</Divider>
                 {joints.map((j, i) => (
-                    <Box key={i} mb={1} display="flex" alignItems="center">
+                    <Box key={i} mb={0.5} display="flex" alignItems="center">
                         <Typography variant="caption" sx={{ width: 40 }}>J{i + 1}</Typography>
                         <Slider
                             size="small"

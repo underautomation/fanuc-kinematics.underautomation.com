@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Box, CssBaseline, CircularProgress, Typography, ThemeProvider } from '@mui/material';
+import { useEffect, useState, useRef } from 'react';
+import { Box, CssBaseline, CircularProgress, Typography, ThemeProvider, useMediaQuery, useTheme } from '@mui/material';
 import { RobotService, ArmKinematicModels } from './services/RobotService';
 import type { DhParameters } from './services/RobotService';
 import Sidebar from './components/Sidebar';
@@ -16,8 +16,21 @@ function App() {
   const [dhParameters, setDhParameters] = useState<DhParameters | null>(null);
 
   // Layout State
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const themeObj = useTheme();
+  // We can use a simple check for mobile, or MUI useMediaQuery
+  const isMobile = useMediaQuery(themeObj.breakpoints.down('sm'));
+
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile); // Default closed on mobile
   const [infoOpen, setInfoOpen] = useState(false);
+
+  // Peek animation state
+  const [isPeeking, setIsPeeking] = useState(false);
+  const hasPeeked = useRef(false);
+
+  useEffect(() => {
+    // Logic to handle initial mobile state if screen changes (optional, but good for resizing)
+    // If we want it strictly "on arrival", relying on initial useState is fine.
+  }, [isMobile]);
 
   useEffect(() => {
     RobotService.init()
@@ -36,6 +49,24 @@ function App() {
       RobotService.getDhParameters(model).then(setDhParameters);
     }
   }, [loading, model]);
+
+  // Mobile Peek Logic
+  useEffect(() => {
+    // Only run on mobile, if sidebar is closed, and we haven't peeked yet
+    if (isMobile && !sidebarOpen && !infoOpen && !hasPeeked.current && !loading) {
+      const timer = setTimeout(() => {
+        setIsPeeking(true);
+        hasPeeked.current = true;
+        // Hide peek after small delay
+        setTimeout(() => {
+          setIsPeeking(false);
+        }, 700); // 700ms visibility
+      }, 2000); // 2s delay after arrival/popup close
+
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, sidebarOpen, infoOpen, loading]);
+
 
   const handleCloseInfo = () => {
     setInfoOpen(false);
@@ -63,6 +94,7 @@ function App() {
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
         <CssBaseline />
         <Header
+          sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onOpenInfo={handleOpenInfo}
         />
@@ -85,6 +117,7 @@ function App() {
             model={model}
             onModelChange={setModel}
             isOpen={sidebarOpen}
+            isPeeking={isPeeking}
           />
         </Box>
 
