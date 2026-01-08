@@ -2,7 +2,7 @@
 import { ArmKinematicModels, RobotService } from '../services/RobotService';
 import type { DhParameters } from '../services/RobotService';
 import { useGLTF, PivotControls } from '@react-three/drei';
-import { Mesh, Vector3, Group, Quaternion } from 'three';
+import { Mesh, Vector3, Group, Quaternion, Color, AxesHelper, Euler } from 'three';
 import { useRef, useEffect } from 'react';
 
 interface RobotModelProps {
@@ -16,9 +16,15 @@ interface RobotModelProps {
 const degToRad = (deg: number) => deg * Math.PI / 180;
 
 // Visualize axes
-const Axis = () => (
-    <axesHelper args={[200]} />
-);
+const Axis = () => {
+    const axesRef = useRef<AxesHelper>(null);
+    useEffect(() => {
+        if (axesRef.current) {
+            axesRef.current.setColors(new Color('#9d4b4b'), new Color('#2f7f4f'), new Color('#3b5b9d'));
+        }
+    }, []);
+    return <axesHelper ref={axesRef} args={[200]} />;
+};
 
 export default function RobotModel({ joints, onTargetChange, onJointsChange, dhParameters, model }: RobotModelProps) {
     void onTargetChange;
@@ -34,7 +40,7 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
         if (tcpRef.current && pivotGroupRef.current && targetRef.current) {
             const worldPos = new Vector3();
             tcpRef.current.getWorldPosition(worldPos);
-            targetRef.current.parent?.position.copy(worldPos);
+            // targetRef.current.parent?.position.copy(worldPos);
 
             // Crucial: Reset the target inside PivotControls to 0,0,0 local
             // because PivotControls moves its children when dragged.
@@ -107,9 +113,11 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
             {/* Wrapper for PivotControls to position it initially at TCP */}
             <group ref={pivotGroupRef}>
                 <PivotControls
-                    scale={50}
+                    scale={100}
                     disableRotations={false}
                     activeAxes={[true, true, true]} // XYZ translations
+                    disableScaling={true}
+                    axisColors={['#9d4b4b', '#2f7f4f', '#3b5b9d']}
                     onDragEnd={async () => {
                         if (!baseGroupRef.current || !targetRef.current) {
                             return;
@@ -118,17 +126,25 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
                         // 1. Get new World Position from the targetRef
                         // PivotControls moves its children (targetRef) in world space
                         const worldPos = new Vector3();
+                        const worldQuat = new Quaternion();
                         targetRef.current.getWorldPosition(worldPos);
+                        targetRef.current.getWorldQuaternion(worldQuat);
 
                         // 2. Convert to Base Frame (Local to baseGroupRef)
                         const localPos = baseGroupRef.current.worldToLocal(worldPos.clone());
 
-                        // 3. Get current WPR (Orientation) via FK to maintain orientation
-                        const fk = await RobotService.calculateFK(joints, model);
-                        if (!fk) {
-                            return;
-                        }
-                        const { w, p, r } = fk;
+                        // 3. Convert Quaternion to Fanuc Euler Angles (w, p, r)
+                        // Fanuc WPR corresponds to rotation about fixed X, Y, Z axes (Extrinsic XYZ)
+                        // Use Three.js 'ZYX' (Intrinsic ZYX) which is equivalent
+                        const baseQuat = new Quaternion();
+                        baseGroupRef.current.getWorldQuaternion(baseQuat);
+                        const localQuat = baseQuat.invert().multiply(worldQuat);
+
+                        const euler = new Euler().setFromQuaternion(localQuat, 'ZYX');
+
+                        const w = euler.x * (180 / Math.PI);
+                        const p = euler.y * (180 / Math.PI);
+                        const r = euler.z * (180 / Math.PI);
 
                         // 4. Solve IK
                         const solutions = await RobotService.calculateIK(

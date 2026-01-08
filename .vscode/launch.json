@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "pwa-chrome",
+            "request": "launch",
+            "name": "Launch Client",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/src/Client",
+            "preLaunchTask": "npm: dev"
+        }
+    ]
+}

@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Environment, OrthographicCamera, GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { OrbitControls, Grid, Environment, OrthographicCamera, GizmoHelper, GizmoViewport, Sky } from '@react-three/drei';
 import RobotModel from './RobotModel';
 import { ArmKinematicModels } from '../services/RobotService';
 import type { DhParameters } from '../services/RobotService';
@@ -18,7 +18,7 @@ export default function Scene({ joints, onJointsChange, model, dhParameters }: S
 
             <color attach="background" args={['#202020']} />
             <ambientLight intensity={0.5} />
-            <directionalLight position={[1000, 2000, 1000]} intensity={1} />
+            <directionalLight position={[1000, 2000, 1000]} intensity={100} />
 
             <RobotModel
                 joints={joints}
@@ -39,10 +39,11 @@ export default function Scene({ joints, onJointsChange, model, dhParameters }: S
                 position={[0, -0.1, 0]}
             />
 
+
             <Environment preset="city" />
 
-            <GizmoHelper alignment="bottom-right" margin={[40, 40]} renderPriority={1}>
-                <GizmoViewport axisColors={['#9d4b4b', '#2f7f4f', '#3b5b9d']} labelColor="white" />
+            <GizmoHelper alignment="bottom-right" margin={[40, 40]} renderPriority={1} rotation={[Math.PI / 2, 0, 0]} >
+                <GizmoViewport axisColors={['#9d4b4b', '#2f7f4f', '#3b5b9d']} labelColor="white" rotation={[-Math.PI / 2, 0, 0]} />
             </GizmoHelper>
         </Canvas>
     );
