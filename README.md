@@ -1,14 +1,12 @@
 # Fanuc Cobot Kinematics Playground
 
-## 🚀 Bringing Industrial Kinematics to the Browser
-
 This project utilizes the **UnderAutomation Fanuc SDK** to deliver a high-fidelity, real-time 3D simulation of Fanuc CRX cobots directly in the web browser.
 
 By leveraging **WebAssembly (WASM)** and **.NET 9 AOT** (Ahead-of-Time) compilation, we have pioneered a way to run the exact same industrial-grade kinematics engine used in factory automation software entirely client-side. This ensures 1:1 kinematic accuracy with physical Fanuc controllers without requiring any backend infrastructure.
 
 ![Fanuc Robot Simulator](https://raw.githubusercontent.com/underautomation/fanuc-kinematics.underautomation.com/refs/heads/main/.github/assets/screenshot.gif)
 
-### Why this matters?
+## Why this matters?
 
 This application serves as a technical proof-of-concept for the **UnderAutomation Fanuc SDK**, demonstrating why it is the ideal candidate for the next generation of Cobot applications:
 

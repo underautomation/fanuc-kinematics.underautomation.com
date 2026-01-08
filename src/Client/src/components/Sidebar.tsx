@@ -1,4 +1,4 @@
-import { Box, Paper, Slider, Typography, Divider, Select, MenuItem, InputLabel, FormControl, Chip, Stack } from '@mui/material';
+import { Box, Paper, Slider, Typography, Divider, Select, MenuItem, InputLabel, FormControl, Chip, Stack, CircularProgress } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import debounce from 'lodash.debounce';
@@ -15,12 +15,13 @@ interface SidebarProps {
     onModelChange: (m: ArmKinematicModels) => void;
     isOpen: boolean;
     isPeeking?: boolean;
+    isReady?: boolean; // New prop
 }
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 600;
 
-export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model, onModelChange, isOpen, isPeeking = false }: SidebarProps) {
+export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model, onModelChange, isOpen, isPeeking = false, isReady = true }: SidebarProps) {
     const [cartesian, setCartesian] = useState({ x: 400, y: 0, z: 400, w: 180, p: 0, r: 0 });
     const [fkResult, setFkResult] = useState<FkResult | null>(null);
     const [ikSolutions, setIkSolutions] = useState<SolutionWithConfig[]>([]);
@@ -40,7 +41,9 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
 
     // Debounced kinematics calculation (FK + All IK Solutions)
     const debouncedCalc = useMemo(
-        () => debounce(async (currJoints: number[], currModel: ArmKinematicModels, editing: boolean) => {
+        () => debounce(async (currJoints: number[], currModel: ArmKinematicModels, editing: boolean, ready: boolean) => {
+            if (!ready) return; // Skip if not ready
+
             // 1. Calculate FK
             const res = await RobotService.calculateFK(currJoints, currModel);
             if (!res) return;
@@ -70,14 +73,16 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
     // Trigger calculation when joints/model change (or when dragging)
     const effectiveJoints = draggingJoints || joints;
     useEffect(() => {
-        debouncedCalc(effectiveJoints, model, isEditingCartesian);
+        debouncedCalc(effectiveJoints, model, isEditingCartesian, isReady);
         return () => {
             // Optional: debouncedCalc.cancel(); 
         };
-    }, [effectiveJoints, model, isEditingCartesian, debouncedCalc]);
+    }, [effectiveJoints, model, isEditingCartesian, isReady, debouncedCalc]);
 
     // When Cartesian values change (from input), solve IK and update best solution
     const updateRobotFromCartesian = async (target: typeof cartesian) => {
+        if (!isReady) return; // Prevent updates if not ready
+
         // Move robot to best solution (closest)
         const best = await KinematicsHelper.findBestJoints(target, joints, model);
         if (best) {
@@ -152,9 +157,37 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
                     boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
                     flexShrink: 0,
                     borderRadius: 0,
+                    position: 'relative' // For overlay
                 }}
             >
-                <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                {!isReady && (
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 50,
+                            bgcolor: (theme) => alpha(theme.palette.background.paper, 0.6),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexDirection: 'column',
+                            p: 2
+                        }}
+                    >
+                        <CircularProgress size={24} sx={{ mb: 2 }} />
+                        <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 1, fontWeight: 'bold' }}>
+                            Initializing...
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" align="center">
+                            Kinematics Engine Loading
+                        </Typography>
+                    </Box>
+                )}
+
+                <FormControl fullWidth size="small" sx={{ mb: 1 }} disabled={!isReady}>
                     <InputLabel>Robot Model</InputLabel>
                     <Select
                         value={model}
@@ -171,7 +204,7 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
                 <Typography variant="overline" display="block" color="text.secondary" fontWeight="bold" gutterBottom>
                     Joint Controls
                 </Typography>
-                <Box>
+                <Box sx={{ opacity: isReady ? 1 : 0.5, pointerEvents: isReady ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
                     {joints.map((val, idx) => {
                         const currentVal = draggingJoints ? draggingJoints[idx] : val;
                         return (
@@ -211,7 +244,7 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
                 <Typography variant="overline" display="block" color="text.secondary" fontWeight="bold" gutterBottom>
                     Cartesian Target
                 </Typography>
-                <Stack spacing={1} mb={2}>
+                <Stack spacing={1} mb={2} sx={{ opacity: isReady ? 1 : 0.5, pointerEvents: isReady ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
                     <Stack direction="row" spacing={1}>
                         <NumberInput label="X" value={cartesian.x} onChange={(v) => handleCartesianChange('x', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
                         <NumberInput label="Y" value={cartesian.y} onChange={(v) => handleCartesianChange('y', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />

@@ -245,9 +245,16 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
         }
     });
 
-    if (!dhParameters) {
-        return null;
-    }
+    // Default DH Params for loading state (Approximation of CRX-10iA)
+    const defaultDh: DhParameters = { a1: 0, a2: 710, a3: 0, d4: 540, d5: 0, d6: 0 };
+    const effectiveDh = dhParameters || defaultDh;
+
+    // if (!dhParameters) {
+    //    return null;
+    // }
+
+    // Ensure we used effectiveDh everywhere below instead of dhParameters!
+
 
     const [pivotKey, setPivotKey] = useState(0);
 
@@ -258,8 +265,8 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
             <KinematicChain
                 ref={visualChainRef}
                 model={model}
-                dhParameters={dhParameters!}
-                visible={!!dhParameters}
+                dhParameters={effectiveDh}
+                visible={true}
             />
 
             {/* 2. TARGET ROBOT (Ghost - Moves Instantly) 
@@ -268,8 +275,8 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
             <KinematicChain
                 ref={targetChainRef}
                 model={model}
-                dhParameters={dhParameters!}
-                visible={!!dhParameters && !isSynced}
+                dhParameters={effectiveDh}
+                visible={!isSynced}
                 isGhost={true}
                 ghostColor="#a0a0a0"
                 ghostOpacity={0.25}
@@ -282,8 +289,8 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
                 <KinematicChain
                     ref={previewChainRef}
                     model={model}
-                    dhParameters={dhParameters!}
-                    visible={!!dhParameters}
+                    dhParameters={effectiveDh}
+                    visible={true}
                     isGhost={true}
                     ghostColor="#4fc3f7"
                     ghostOpacity={0.4}
@@ -291,85 +298,87 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
             )}
 
             {/* Pivot Controls - Attached to the TARGET (Invisible most of the time) */}
-            <group ref={pivotGroupRef}>
-                <PivotControls
-                    key={pivotKey}
-                    scale={100}
+            {dhParameters && (
+                <group ref={pivotGroupRef}>
+                    <PivotControls
+                        key={pivotKey}
+                        scale={100}
 
-                    disableRotations={false}
-                    activeAxes={[true, true, true]} // XYZ translations
-                    disableScaling={true}
-                    axisColors={['#9d4b4b', '#2f7f4f', '#3b5b9d']}
-                    onDragStart={() => isDraggingRef.current = true}
-                    onDragEnd={async () => {
-                        try {
-                            if (!baseGroupRef.current || !targetRef.current) {
+                        disableRotations={false}
+                        activeAxes={[true, true, true]} // XYZ translations
+                        disableScaling={true}
+                        axisColors={['#9d4b4b', '#2f7f4f', '#3b5b9d']}
+                        onDragStart={() => isDraggingRef.current = true}
+                        onDragEnd={async () => {
+                            try {
+                                if (!baseGroupRef.current || !targetRef.current) {
+                                    isDraggingRef.current = false;
+                                    setPivotKey((k: number) => k + 1);
+                                    return;
+                                }
+
+                                // 1. Get new World Position/Rotation from the targetRef
+                                const worldPos = new Vector3();
+                                const worldQuat = new Quaternion();
+                                targetRef.current.getWorldPosition(worldPos);
+                                targetRef.current.getWorldQuaternion(worldQuat);
+
+                                // 2. Reset targetRef local coords IMMEDIATELY
+                                targetRef.current.position.set(0, 0, 0);
+                                targetRef.current.rotation.set(0, 0, 0);
+                                targetRef.current.scale.set(1, 1, 1);
+                                targetRef.current.updateMatrix();
+
+                                // 3. Enable sync & Refresh PivotControls (Key Reset)
                                 isDraggingRef.current = false;
                                 setPivotKey((k: number) => k + 1);
-                                return;
-                            }
 
-                            // 1. Get new World Position/Rotation from the targetRef
-                            const worldPos = new Vector3();
-                            const worldQuat = new Quaternion();
-                            targetRef.current.getWorldPosition(worldPos);
-                            targetRef.current.getWorldQuaternion(worldQuat);
+                                // 4. Convert to Base Frame
+                                const localPos = baseGroupRef.current.worldToLocal(worldPos.clone());
+                                const baseQuat = new Quaternion();
+                                baseGroupRef.current.getWorldQuaternion(baseQuat);
+                                const localQuat = baseQuat.invert().multiply(worldQuat);
 
-                            // 2. Reset targetRef local coords IMMEDIATELY
-                            targetRef.current.position.set(0, 0, 0);
-                            targetRef.current.rotation.set(0, 0, 0);
-                            targetRef.current.scale.set(1, 1, 1);
-                            targetRef.current.updateMatrix();
+                                const euler = new Euler().setFromQuaternion(localQuat, 'ZYX');
 
-                            // 3. Enable sync & Refresh PivotControls (Key Reset)
-                            isDraggingRef.current = false;
-                            setPivotKey((k: number) => k + 1);
+                                const w = radToDeg(euler.x);
+                                const p = radToDeg(euler.y);
+                                const r = radToDeg(euler.z);
 
-                            // 4. Convert to Base Frame
-                            const localPos = baseGroupRef.current.worldToLocal(worldPos.clone());
-                            const baseQuat = new Quaternion();
-                            baseGroupRef.current.getWorldQuaternion(baseQuat);
-                            const localQuat = baseQuat.invert().multiply(worldQuat);
+                                console.log(`Goal: X=${localPos.x.toFixed(1)}, Y=${localPos.y.toFixed(1)}, Z=${localPos.z.toFixed(1)}`);
 
-                            const euler = new Euler().setFromQuaternion(localQuat, 'ZYX');
+                                // 5. Solve IK
+                                let best = await KinematicsHelper.findBestJoints(
+                                    { x: localPos.x, y: localPos.y, z: localPos.z, w, p, r },
+                                    visualJoints.current,
+                                    model
+                                );
 
-                            const w = radToDeg(euler.x);
-                            const p = radToDeg(euler.y);
-                            const r = radToDeg(euler.z);
-
-                            console.log(`Goal: X=${localPos.x.toFixed(1)}, Y=${localPos.y.toFixed(1)}, Z=${localPos.z.toFixed(1)}`);
-
-                            // 5. Solve IK
-                            let best = await KinematicsHelper.findBestJoints(
-                                { x: localPos.x, y: localPos.y, z: localPos.z, w, p, r },
-                                visualJoints.current,
-                                model
-                            );
-
-                            if (!best) {
-                                console.warn("No local solution, trying global search...");
-                                const solutions = await KinematicsHelper.getSolutionsWithConfigs({ x: localPos.x, y: localPos.y, z: localPos.z, w, p, r }, model);
-                                if (solutions.length > 0) {
-                                    best = solutions[0].joints;
+                                if (!best) {
+                                    console.warn("No local solution, trying global search...");
+                                    const solutions = await KinematicsHelper.getSolutionsWithConfigs({ x: localPos.x, y: localPos.y, z: localPos.z, w, p, r }, model);
+                                    if (solutions.length > 0) {
+                                        best = solutions[0].joints;
+                                    }
                                 }
-                            }
 
-                            if (best) {
-                                onJointsChange(best);
-                            } else {
-                                console.error("Position unreachable / No IK solution");
+                                if (best) {
+                                    onJointsChange(best);
+                                } else {
+                                    console.error("Position unreachable / No IK solution");
+                                }
+                            } catch (e) {
+                                console.error("Error in onDragEnd:", e);
+                                isDraggingRef.current = false;
+                                setPivotKey((k: number) => k + 1);
                             }
-                        } catch (e) {
-                            console.error("Error in onDragEnd:", e);
-                            isDraggingRef.current = false;
-                            setPivotKey((k: number) => k + 1);
-                        }
-                    }}
-                >
-                    {/* This is the invisible target frame we attach the gizmo to */}
-                    <group ref={targetRef} />
-                </PivotControls>
-            </group>
+                        }}
+                    >
+                        {/* This is the invisible target frame we attach the gizmo to */}
+                        <group ref={targetRef} />
+                    </PivotControls>
+                </group>
+            )}
 
             {/* Virtual Base Frame for Calculations */}
             <group ref={baseGroupRef} position={[0, 245, 0]} rotation={[-Math.PI / 2, 0, 0]}>

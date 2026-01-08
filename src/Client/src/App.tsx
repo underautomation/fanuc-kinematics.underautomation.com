@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, CssBaseline, CircularProgress, Typography, ThemeProvider, useMediaQuery, useTheme } from '@mui/material';
+import { Box, CssBaseline, ThemeProvider, useMediaQuery, useTheme } from '@mui/material';
 import { RobotService, ArmKinematicModels } from './services/RobotService';
 import type { DhParameters } from './services/RobotService';
 import Sidebar from './components/Sidebar';
@@ -80,17 +80,7 @@ function App() {
     setInfoOpen(true);
   };
 
-  if (loading) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box display="flex" justifyContent="center" alignItems="center" height="100vh" bgcolor="background.default">
-          <CircularProgress />
-          <Typography ml={2} variant="h6" color="text.primary">Initializing Fanuc Robot Logic...</Typography>
-        </Box>
-      </ThemeProvider>
-    );
-  }
+
 
   return (
     <ThemeProvider theme={theme}>
@@ -123,6 +113,7 @@ function App() {
             onModelChange={setModel}
             isOpen={sidebarOpen}
             isPeeking={isPeeking}
+            isReady={!loading}
           />
         </Box>
 
