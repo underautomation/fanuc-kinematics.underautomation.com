@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Slide } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Slide, useTheme, useMediaQuery } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ReactMarkdown from 'react-markdown';
 import readmePath from '../../../../README.md?raw'; // Vite allows importing text files with ?raw
@@ -20,11 +20,14 @@ const Transition = React.forwardRef(function Transition(
 });
 
 export default function InfoPopup({ open, onClose }: InfoPopupProps) {
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
     return (
         <Dialog
             open={open}
             onClose={onClose}
+            fullScreen={fullScreen}
             fullWidth
             maxWidth="lg"
             scroll="paper"
@@ -32,8 +35,8 @@ export default function InfoPopup({ open, onClose }: InfoPopupProps) {
                 transition: Transition,
             }}
         >
-            <DialogTitle sx={{ m: 0, p: 2 }}>
-                About this project
+            <DialogTitle>
+                Fanuc Cobot Kinematics Playground
                 <IconButton
                     aria-label="close"
                     onClick={onClose}
@@ -47,8 +50,24 @@ export default function InfoPopup({ open, onClose }: InfoPopupProps) {
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
-            <DialogContent dividers>
-                <ReactMarkdown>{readmePath}</ReactMarkdown>
+            <DialogContent dividers sx={{ pt: 1 }}>
+                <ReactMarkdown
+                    components={{
+                        img: (props) => (
+                            <img
+                                {...props}
+                                style={{
+                                    maxWidth: '100%',
+                                    display: 'block',
+                                    margin: '0 auto'
+                                }}
+                            />
+                        ),
+                        h1: () => null,
+                    }}
+                >
+                    {readmePath}
+                </ReactMarkdown>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} autoFocus>
