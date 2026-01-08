@@ -28,6 +28,9 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
     // Track if user is actively editing Cartesian inputs to avoid overwriting their work with FK updates
     const [isEditingCartesian, setIsEditingCartesian] = useState(false);
 
+    // Track slider dragging for Ghost Preview
+    const [draggingJoints, setDraggingJoints] = useState<number[] | null>(null);
+
     // Resize state
     const [width, setWidth] = useState(360);
     const [isResizing, setIsResizing] = useState(false);
@@ -64,13 +67,14 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
         []
     );
 
-    // Trigger calculation when joints/model change
+    // Trigger calculation when joints/model change (or when dragging)
+    const effectiveJoints = draggingJoints || joints;
     useEffect(() => {
-        debouncedCalc(joints, model, isEditingCartesian);
+        debouncedCalc(effectiveJoints, model, isEditingCartesian);
         return () => {
-            // Optional: debouncedCalc.cancel();
+            // Optional: debouncedCalc.cancel(); 
         };
-    }, [joints, model, isEditingCartesian, debouncedCalc]);
+    }, [effectiveJoints, model, isEditingCartesian, debouncedCalc]);
 
     // When Cartesian values change (from input), solve IK and update best solution
     const updateRobotFromCartesian = async (target: typeof cartesian) => {
@@ -150,32 +154,75 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
                     borderRadius: 0,
                 }}
             >
-                <FormControl fullWidth size="small" sx={{ mb: 1, mt: 1 }}>
+                <FormControl fullWidth size="small" sx={{ mb: 1 }}>
                     <InputLabel>Robot Model</InputLabel>
                     <Select
                         value={model}
                         label="Robot Model"
                         onChange={(e) => onModelChange(Number(e.target.value) as ArmKinematicModels)}
                     >
-                        <MenuItem value={ArmKinematicModels.CRX10iA}>CRX-10iA (Short)</MenuItem>
-                        <MenuItem value={ArmKinematicModels.CRX10iAL}>CRX-10iA/L (Long)</MenuItem>
+                        <MenuItem value={ArmKinematicModels.CRX10iA}>CRX-10iA (Standard)</MenuItem>
+                        <MenuItem value={ArmKinematicModels.CRX10iAL}>CRX-10iAL (Long)</MenuItem>
                     </Select>
                 </FormControl>
 
-                <Divider sx={{ my: 1 }}>Joints (FK)</Divider>
-                {joints.map((j, i) => (
-                    <Box key={i} mb={0.5} display="flex" alignItems="center">
-                        <Typography variant="caption" sx={{ width: 40 }}>J{i + 1}</Typography>
-                        <Slider
-                            size="small"
-                            min={limits[0]} max={limits[1]}
-                            value={j}
-                            onChange={(_, v) => onJointsChange([...joints.slice(0, i), v as number, ...joints.slice(i + 1)])} // Direct update
-                            sx={{ flexGrow: 1, mx: 1 }}
-                        />
-                        <Typography variant="caption" sx={{ width: 40, textAlign: 'right' }}>{j.toFixed(0)}°</Typography>
-                    </Box>
-                ))}
+                <Divider sx={{ my: 1.5, borderColor: 'rgba(255,255,255,0.1)' }} />
+
+                <Typography variant="overline" display="block" color="text.secondary" fontWeight="bold" gutterBottom>
+                    Joint Controls
+                </Typography>
+                <Box>
+                    {joints.map((val, idx) => {
+                        const currentVal = draggingJoints ? draggingJoints[idx] : val;
+                        return (
+                            <Box key={idx} mb={0.5} display="flex" alignItems="center" sx={{ height: 28 }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ width: 30, fontWeight: 500 }}>J{idx + 1}</Typography>
+                                <Slider
+                                    value={currentVal}
+                                    min={limits[0]}
+                                    max={limits[1]}
+                                    step={0.1}
+                                    onChange={(_, v) => {
+                                        const newJoints = [...(draggingJoints || joints)];
+                                        newJoints[idx] = v as number;
+                                        setDraggingJoints(newJoints);
+                                        onPreviewJoints(newJoints);
+                                    }}
+                                    onChangeCommitted={(_, v) => {
+                                        const newJoints = [...(draggingJoints || joints)];
+                                        newJoints[idx] = v as number;
+                                        setDraggingJoints(null);
+                                        onPreviewJoints(null);
+                                        onJointsChange(newJoints);
+                                    }}
+                                    size="small"
+                                    sx={{ mx: 1.5, flexGrow: 1 }}
+                                />
+                                <Typography variant="caption" color="text.secondary" sx={{ width: 40, textAlign: 'right', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                    {currentVal.toFixed(0)}°
+                                </Typography>
+                            </Box>
+                        );
+                    })}
+                </Box>
+
+                <Divider sx={{ my: 1.5, borderColor: 'rgba(255,255,255,0.1)' }} />
+
+                <Typography variant="overline" display="block" color="text.secondary" fontWeight="bold" gutterBottom>
+                    Cartesian Target
+                </Typography>
+                <Stack spacing={1} mb={2}>
+                    <Stack direction="row" spacing={1}>
+                        <NumberInput label="X" value={cartesian.x} onChange={(v) => handleCartesianChange('x', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
+                        <NumberInput label="Y" value={cartesian.y} onChange={(v) => handleCartesianChange('y', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
+                        <NumberInput label="Z" value={cartesian.z} onChange={(v) => handleCartesianChange('z', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
+                    </Stack>
+                    <Stack direction="row" spacing={1}>
+                        <NumberInput label="W" value={cartesian.w} onChange={(v) => handleCartesianChange('w', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
+                        <NumberInput label="P" value={cartesian.p} onChange={(v) => handleCartesianChange('p', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
+                        <NumberInput label="R" value={cartesian.r} onChange={(v) => handleCartesianChange('r', v)} onFocus={() => setIsEditingCartesian(true)} onBlur={() => setIsEditingCartesian(false)} />
+                    </Stack>
+                </Stack>
 
                 {fkResult && fkResult.configuration && (
                     <Box sx={{ mt: 1, p: 1, bgcolor: (theme) => alpha(theme.palette.action.hover, 0.1), borderRadius: 1 }}>
@@ -185,27 +232,11 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
                     </Box>
                 )}
 
-                <Divider sx={{ my: 2 }}>Cartesian (IK)</Divider>
-                <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={1}>
-                    {Object.entries(cartesian).map(([key, val]) => (
-                        <Box key={key}>
-                            <NumberInput
-                                label={key.toUpperCase()}
-                                value={val}
-                                onChange={(newVal) => handleCartesianChange(key, newVal)}
-                                onFocus={() => setIsEditingCartesian(true)}
-                                onBlur={() => setIsEditingCartesian(false)}
-                                size="small"
-                                fullWidth
-                                InputProps={{ style: { fontSize: 13 } }}
-                            />
-                        </Box>
-                    ))}
-                </Box>
-
                 {ikSolutions.length > 0 && (
-                    <Box mt={2}>
-                        <Typography variant="subtitle2" gutterBottom>Configuration Solutions</Typography>
+                    <Box mt={3}>
+                        <Typography variant="overline" display="block" color="text.secondary" fontWeight="bold" gutterBottom>
+                            Available Solutions
+                        </Typography>
                         <Stack direction="row" flexWrap="wrap" gap={1}>
                             {ikSolutions.map((sol, idx) => (
                                 <Chip

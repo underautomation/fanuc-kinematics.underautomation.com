@@ -209,7 +209,7 @@ export default function RobotModel({ joints, onTargetChange, onJointsChange, dhP
 
         for (let i = 0; i < 6; i++) {
             const diff = joints[i] - visualJoints.current[i];
-            if (Math.abs(diff) > 0.001) {
+            if (Math.abs(diff) > 0.5) {
                 // Interpolate
                 visualJoints.current[i] += diff * Math.min(1, speed * delta);
                 moving = true;
