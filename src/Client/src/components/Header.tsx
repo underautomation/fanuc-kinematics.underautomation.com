@@ -16,9 +16,9 @@ export default function Header({ onToggleSidebar, onOpenInfo, sidebarOpen }: Hea
 
     return (
         <AppBar position="static" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
+            <Toolbar sx={{ justifyContent: 'space-between', minHeight: isMobile ? 56 : 64 }}>
                 {/* Left: Sidebar Toggle */}
-                <Box sx={{ display: 'flex', alignItems: 'center', width: isMobile ? 40 : 200 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                     <Tooltip title={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}>
                         <IconButton
                             edge="start"
@@ -32,23 +32,33 @@ export default function Header({ onToggleSidebar, onOpenInfo, sidebarOpen }: Hea
                 </Box>
 
                 {/* Center: Application Title */}
-                <Typography
-                    variant="h6"
-                    component="div"
-                    sx={{
-                        flexGrow: 1,
-                        textAlign: 'center',
-                        fontSize: isMobile ? '1rem' : '1.25rem',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                    }}
-                >
-                    Fanuc Cobot Kinematics Playground
-                </Typography>
+                <Box sx={{
+                    flexGrow: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    px: 1,
+                    overflow: 'hidden'
+                }}>
+                    <Typography
+                        variant="h6"
+                        component="div"
+                        sx={{
+                            textAlign: 'center',
+                            fontSize: isMobile ? '0.9rem' : '1.25rem',
+                            lineHeight: 1.1,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                        }}
+                    >
+                        Fanuc Cobot Kinematics Playground
+                    </Typography>
+                </Box>
 
                 {/* Right: Branding & Actions */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: isMobile ? 'auto' : 200 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
                     <Box
                         component="a"
                         href="https://underautomation.com"

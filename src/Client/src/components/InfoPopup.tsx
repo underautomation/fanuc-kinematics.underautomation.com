@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Slide, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Slide, useTheme, useMediaQuery } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ReactMarkdown from 'react-markdown';
 import readmePath from '../../../../README.md?raw'; // Vite allows importing text files with ?raw
@@ -50,24 +50,24 @@ export default function InfoPopup({ open, onClose }: InfoPopupProps) {
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
-            <DialogContent dividers sx={{ pt: 1 }}>
-                <ReactMarkdown
-                    components={{
-                        img: (props) => (
-                            <img
-                                {...props}
-                                style={{
-                                    maxWidth: '100%',
-                                    display: 'block',
-                                    margin: '0 auto'
-                                }}
-                            />
-                        ),
-                        h1: () => null,
-                    }}
-                >
-                    {readmePath}
-                </ReactMarkdown>
+            <DialogContent dividers sx={{ pt: 1, overflowX: 'hidden' }}>
+                <Box sx={{
+                    overflowWrap: 'break-word',
+                    '& img': {
+                        maxWidth: '100% !important',
+                        height: 'auto',
+                        display: 'block',
+                        margin: '0 auto'
+                    }
+                }}>
+                    <ReactMarkdown
+                        components={{
+                            h1: () => null,
+                        }}
+                    >
+                        {readmePath}
+                    </ReactMarkdown>
+                </Box>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} autoFocus>

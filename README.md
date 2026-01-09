@@ -10,7 +10,7 @@ By leveraging **WebAssembly (WASM)** and **.NET 9 AOT** (Ahead-of-Time) compilat
 
 This application serves as a technical proof-of-concept for the **UnderAutomation Fanuc SDK**, demonstrating why it is the ideal candidate for the next generation of Cobot applications:
 
-*   **⚡ Unmatched Performance**: Experience real-time Inverse Kinematics (IK) and Forward Kinematics (FK) calculations with zero network latency.
+*   **⚡ Unmatched Performance**: Experience real-time Inverse Kinematics (IK) powered by a novel **analytical algorithm for non-spherical wrists** and Forward Kinematics (FK) calculations with zero network latency.
 *   **🎯 Industrial Accuracy**: The kinematics solver handles the complex joint configurations and singularities of Fanuc robots, mirroring the physical controller's behavior exactly.
 *   **🌐 Universal Compatibility**: By running in the browser, this technology enables cross-platform tools for simulations, offline programming, and training on Windows, macOS, Linux, iOS, and Android.
 *   **🔒 Secure & Offline**: No data needs to leave the client device. The simulation logic runs locally, making it perfect for sensitive industrial environments.
@@ -32,6 +32,8 @@ While the full [UnderAutomation SDK](https://underautomation.com) covers the ent
 
 ### 🔄 Real-Time Inverse Kinematics (IK)
 Move the robot by defining a target in Cartesian space (X, Y, Z, W, P, R). The solver instantly computes the necessary joint angles. It handles multiple potential solutions, allowing you to choose the specific configuration (e.g., "Flip" vs "No-Flip", "Up" vs "Down", etc.) that best suits your needs.
+
+> **Technical Note**: This engine utilizes a specialized **analytical algorithm** for **non-spherical wrists** (typical of cobots like the Fanuc CRX). While valid for standard spherical-wrist robots too, this demo focuses on the CRX to showcase this specific innovation. [Learn more about the algorithm](https://underautomation.com/fanuc/documentation/kinematics).
 
 ### 📐 Forward Kinematics (FK)
 Monitor the robot's state in real-time. As you adjust individual joint angles, the system continuously updates the Cartesian position and determines the current configuration string (e.g., `N U T 0 0 0`), just like a real Fanuc controller.
