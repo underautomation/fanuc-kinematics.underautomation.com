@@ -16,7 +16,7 @@
 	    <ProjectReference Include="$(SolutionDir)\Fanuc\Fanuc.csproj" />
 	</ItemGroup>
     <ItemGroup Condition="!$(SolutionName.EndsWith(`Dev`))">
-	    <PackageReference Include="UnderAutomation.Fanuc" Version="6.1.0" />
+	    <PackageReference Include="UnderAutomation.Fanuc" Version="6.2.0" />
     </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="Publish">

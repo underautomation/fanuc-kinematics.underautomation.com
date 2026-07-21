@@ -3,7 +3,7 @@ name: Deploy to Vercel
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -20,8 +20,9 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
-
+          dotnet-version: "9.0.x"
+      - name: dotnet workload restore
+        run: dotnet workload restore
       - name: Build .NET Logic
         run: .\build_logic.cmd
         env:
