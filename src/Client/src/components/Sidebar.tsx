@@ -189,10 +189,10 @@ export default function Sidebar({ joints, onJointsChange, onPreviewJoints, model
 
                 <FormControl fullWidth size="small" sx={{ mb: 1 }} disabled={!isReady}>
                     <InputLabel>Robot Model</InputLabel>
-                    <Select
+                    <Select<ArmKinematicModels>
                         value={model}
                         label="Robot Model"
-                        onChange={(e) => onModelChange(Number(e.target.value) as ArmKinematicModels)}
+                        onChange={(e) => onModelChange(e.target.value)}
                     >
                         <MenuItem value={ArmKinematicModels.CRX10iA}>CRX-10iA (Standard)</MenuItem>
                         <MenuItem value={ArmKinematicModels.CRX10iAL}>CRX-10iAL (Long)</MenuItem>

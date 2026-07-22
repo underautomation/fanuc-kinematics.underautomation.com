@@ -7,14 +7,14 @@ namespace RobotLogic;
 public class RobotController
 {
     [JSInvokable]
-    public static DhParameters GetDhParameters(ArmKinematicModels model)
+    public static DhParameters GetDhParameters(string model)
     {
         return DhParameters.FromArmKinematicModel(model);
     }
 
     [JSInvokable]
     public static double[][] CalculateInverseKinematics(double x, double y, double z, double w, double p, double r,
-        ArmKinematicModels model)
+        string model)
     {
         try
         {
@@ -56,7 +56,7 @@ public class RobotController
 
     [JSInvokable]
     public static FkResult? CalculateForwardKinematics(double j1, double j2, double j3, double j4, double j5, double j6,
-        ArmKinematicModels model)
+        string model)
     {
         try
         {
